@@ -8,6 +8,12 @@ const router = express.Router()
 
 router.post('/register', async (req, res) => {
     const { fullname, username, password } = req.body;
+    const existingUser = await userModel.findOne({
+        username
+    })
+    if (existingUser) {
+        return res.status(409).json({ message: 'User already exists' })
+    }
     const user = await userModel.create({
         fullname, username, password
     })
@@ -34,6 +40,13 @@ router.post('/login', async (req, res) => {
     if (user.password !== password) {
         return res.status(401).json({ message: 'Invalid Password' })
     }
+
+    const token = jwt.sign({
+        userId: user._id,
+    }, process.env.JWT_SECRET)
+
+    res.cookie("token", token)
+
     res.status(200).json({
         message: 'Login successful',
         user,
@@ -71,6 +84,14 @@ router.get('/user', async (req, res) => {
             message: 'Invalid Token'
         })
     }
+})
+
+router.post('/logout', (req,res)=>{
+    res.clearCookie('token')
+
+    res.status(200).json({
+        message: 'Logout successfull'
+    })
 })
 
 module.exports = router
